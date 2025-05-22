@@ -231,6 +231,7 @@
 
 						<td class=" px-3 py-1 text-right font-semibold">
 							<FeedbackMenu
+								feedbackId={feedback.id}
 								on:delete={(e) => {
 									deleteFeedbackHandler(feedback.id);
 								}}

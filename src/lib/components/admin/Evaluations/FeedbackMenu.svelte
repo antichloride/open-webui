@@ -14,8 +14,13 @@
 	import Pencil from '$lib/components/icons/Pencil.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
+	import ChatInsightsModal from './ChatInsightsModal.svelte';
+	import BarsArrowUp from '$lib/components/icons/BarsArrowUp.svelte';
+	import Clipboard from '$lib/components/icons/Clipboard.svelte';
 
 	let show = false;
+	export let feedbackId: string = '';
+	let showInsightsModal = false;
 </script>
 
 <Dropdown bind:show on:change={(e) => {}}>
@@ -32,6 +37,15 @@
 			transition={flyAndScale}
 		>
 			<DropdownMenu.Item
+				class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md"
+				on:click={() => {
+					showInsightsModal = true;
+				}}
+			>
+				<Clipboard strokeWidth="2" />
+				<div class="flex items-center">Chat Insights</div>
+			</DropdownMenu.Item>
+			<DropdownMenu.Item
 				class="flex  gap-2  items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md"
 				on:click={() => {
 					dispatch('delete');
@@ -44,3 +58,5 @@
 		</DropdownMenu.Content>
 	</div>
 </Dropdown>
+
+<ChatInsightsModal bind:show={showInsightsModal} {feedbackId} />
