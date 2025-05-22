@@ -39,6 +39,13 @@ interface ChatSnapshot {
 
 interface FeedbackData {
 	snapshot: ChatSnapshot;
+	data?: {
+		rating?: number;
+		comment?: string;
+		details?: {
+			rating?: number;
+		};
+	};
 }
 
 export let show = false;
@@ -104,6 +111,17 @@ async function loadFeedback() {
 			</button>
 		</div>
 
+		{#if feedbackData?.data?.details?.rating || feedbackData?.data?.comment}
+			<div class="px-5 pb-2 text-sm text-gray-600 dark:text-gray-400">
+				{#if feedbackData?.data?.details?.rating}
+					<div class="mb-1">Rating: {feedbackData.data.details.rating}/10</div>
+				{/if}
+				{#if feedbackData?.data?.comment}
+					<div class="italic">"{feedbackData.data.comment}"</div>
+				{/if}
+			</div>
+		{/if}
+
 		<div class="flex flex-col w-full px-4 pt-1 pb-4">
 			{#if loading}
 				<div class="flex justify-center items-center py-8">
@@ -112,9 +130,9 @@ async function loadFeedback() {
 			{:else if error}
 				<div class="text-red-500 text-center py-8">{error}</div>
 			{:else if feedbackData?.snapshot?.chat?.chat?.history}
-				<div class="h-[60vh] overflow-y-auto">
+				<div class="h-[60vh] overflow-y-auto pointer-events-auto select-text">
 					<Messages
-						className="h-full flex pt-4 pb-8"
+						className="h-full flex pt-4 pb-8 pointer-events-auto select-text"
 						chatId={feedbackId}
 						readOnly={true}
 						{selectedModels}
