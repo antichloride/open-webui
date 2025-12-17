@@ -222,6 +222,32 @@ class ModelsTable:
             or has_access(user_id, permission, model.access_control, user_group_ids)
         ]
 
+    def get_models_access_info(self, model_ids: list[str]) -> dict[str, dict]:
+        """
+        Batch fetch access control info and user_id for multiple models.
+        Returns a dict mapping model_id to {user_id, access_control}.
+        This avoids loading heavy fields like profile_image_url.
+        """
+        if not model_ids:
+            return {}
+        
+        try:
+            with get_db() as db:
+                models = db.query(Model.id, Model.user_id, Model.access_control).filter(
+                    Model.id.in_(model_ids)
+                ).all()
+                
+                return {
+                    model.id: {
+                        "user_id": model.user_id,
+                        "access_control": model.access_control,
+                    }
+                    for model in models
+                }
+        except Exception as e:
+            log.exception(f"Failed to fetch models access info: {e}")
+            return {}
+
     def _has_permission(self, db, query, filter: dict, permission: str = "read"):
         group_ids = filter.get("group_ids", [])
         user_id = filter.get("user_id")
