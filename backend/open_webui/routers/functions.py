@@ -20,6 +20,7 @@ from open_webui.utils.plugin import (
     replace_imports,
     get_function_module_from_cache,
     resolve_valves_schema_options,
+    get_content_hash,
 )
 from open_webui.config import CACHE_DIR
 from open_webui.constants import ERROR_MESSAGES
@@ -222,6 +223,15 @@ async def create_new_function(
             FUNCTIONS = request.app.state.FUNCTIONS
             FUNCTIONS[form_data.id] = function_module
 
+            if not hasattr(request.app.state, "FUNCTION_CONTENT_HASHES"):
+                request.app.state.FUNCTION_CONTENT_HASHES = {}
+            request.app.state.FUNCTION_CONTENT_HASHES[form_data.id] = get_content_hash(
+                form_data.content
+            )
+            if not hasattr(request.app.state, "FUNCTION_CONTENT"):
+                request.app.state.FUNCTION_CONTENT = {}
+            request.app.state.FUNCTION_CONTENT[form_data.id] = form_data.content
+
             function = Functions.insert_new_function(
                 user.id, function_type, form_data, db=db
             )
@@ -355,6 +365,15 @@ async def update_function_by_id(
         FUNCTIONS = request.app.state.FUNCTIONS
         FUNCTIONS[id] = function_module
 
+        if not hasattr(request.app.state, "FUNCTION_CONTENT_HASHES"):
+            request.app.state.FUNCTION_CONTENT_HASHES = {}
+        request.app.state.FUNCTION_CONTENT_HASHES[id] = get_content_hash(
+            form_data.content
+        )
+        if not hasattr(request.app.state, "FUNCTION_CONTENT"):
+            request.app.state.FUNCTION_CONTENT = {}
+        request.app.state.FUNCTION_CONTENT[id] = form_data.content
+
         updated = {**form_data.model_dump(exclude={"id"}), "type": function_type}
         log.debug(updated)
 
@@ -396,6 +415,14 @@ async def delete_function_by_id(
         FUNCTIONS = request.app.state.FUNCTIONS
         if id in FUNCTIONS:
             del FUNCTIONS[id]
+        if hasattr(request.app.state, "FUNCTION_CONTENT_HASHES"):
+            function_hashes = request.app.state.FUNCTION_CONTENT_HASHES
+            if id in function_hashes:
+                del function_hashes[id]
+        if hasattr(request.app.state, "FUNCTION_CONTENT"):
+            function_contents = request.app.state.FUNCTION_CONTENT
+            if id in function_contents:
+                del function_contents[id]
 
     return result
 

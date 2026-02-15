@@ -6,6 +6,7 @@ from importlib import util
 import types
 import tempfile
 import logging
+import hashlib
 from typing import Any
 
 from open_webui.env import PIP_OPTIONS, PIP_PACKAGE_INDEX_OPTIONS, OFFLINE_MODE
@@ -204,6 +205,10 @@ def replace_imports(content):
     return content
 
 
+def get_content_hash(content: str) -> str:
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
 def load_tool_module_by_id(tool_id, content=None):
 
     if content is None:
@@ -345,57 +350,40 @@ def get_tool_module_from_cache(request, tool_id, load_from_db=True):
 
 
 def get_function_module_from_cache(request, function_id, load_from_db=True):
-    if load_from_db:
-        # Always load from the database by default
-        # This is useful for hooks like "inlet" or "outlet" where the content might change
-        # and we want to ensure the latest content is used.
-
-        function = Functions.get_function_by_id(function_id)
-        if not function:
-            raise Exception(f"Function not found: {function_id}")
-        content = function.content
-
-        new_content = replace_imports(content)
-        if new_content != content:
-            content = new_content
-            # Update the function content in the database
-            Functions.update_function_by_id(function_id, {"content": content})
-
-        if (
-            hasattr(request.app.state, "FUNCTION_CONTENTS")
-            and function_id in request.app.state.FUNCTION_CONTENTS
-        ) and (
-            hasattr(request.app.state, "FUNCTIONS")
-            and function_id in request.app.state.FUNCTIONS
-        ):
-            if request.app.state.FUNCTION_CONTENTS[function_id] == content:
-                return request.app.state.FUNCTIONS[function_id], None, None
-
-        function_module, function_type, frontmatter = load_function_module_by_id(
-            function_id, content
-        )
-    else:
-        # Load from cache (e.g. "stream" hook)
-        # This is useful for performance reasons
-
-        if (
-            hasattr(request.app.state, "FUNCTIONS")
-            and function_id in request.app.state.FUNCTIONS
-        ):
-            return request.app.state.FUNCTIONS[function_id], None, None
-
-        function_module, function_type, frontmatter = load_function_module_by_id(
-            function_id
-        )
-
+    # Initialize caches if needed
     if not hasattr(request.app.state, "FUNCTIONS"):
         request.app.state.FUNCTIONS = {}
+    if not hasattr(request.app.state, "FUNCTION_CONTENT"):
+        request.app.state.FUNCTION_CONTENT = {}
+    if not hasattr(request.app.state, "FUNCTION_CONTENT_HASHES"):
+        request.app.state.FUNCTION_CONTENT_HASHES = {}
 
-    if not hasattr(request.app.state, "FUNCTION_CONTENTS"):
-        request.app.state.FUNCTION_CONTENTS = {}
+    cached_content = request.app.state.FUNCTION_CONTENT.get(function_id)
+    cached_hash = request.app.state.FUNCTION_CONTENT_HASHES.get(function_id)
+
+    if cached_content is not None and cached_hash is not None:
+        if get_content_hash(cached_content) == cached_hash and function_id in request.app.state.FUNCTIONS:
+            return request.app.state.FUNCTIONS[function_id], None, None
+
+    # Cache miss or hash mismatch: load from DB and refresh caches
+    function = Functions.get_function_by_id(function_id)
+    if not function:
+        raise Exception(f"Function not found: {function_id}")
+    content = function.content
+
+    new_content = replace_imports(content)
+    if new_content != content:
+        content = new_content
+        Functions.update_function_by_id(function_id, {"content": content})
+
+    content_hash = get_content_hash(content)
+    function_module, function_type, frontmatter = load_function_module_by_id(
+        function_id, content
+    )
 
     request.app.state.FUNCTIONS[function_id] = function_module
-    request.app.state.FUNCTION_CONTENTS[function_id] = content
+    request.app.state.FUNCTION_CONTENT[function_id] = content
+    request.app.state.FUNCTION_CONTENT_HASHES[function_id] = content_hash
 
     return function_module, function_type, frontmatter
 

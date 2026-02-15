@@ -62,6 +62,7 @@ from open_webui.utils.audit import AuditLevel, AuditLoggingMiddleware
 from open_webui.utils.logger import start_logger
 from open_webui.socket.main import (
     MODELS,
+    FUNCTION_CONTENT_HASHES,
     app as socket_app,
     periodic_usage_pool_cleanup,
     get_event_emitter,
@@ -873,7 +874,8 @@ app.state.TOOLS = {}
 app.state.TOOL_CONTENTS = {}
 
 app.state.FUNCTIONS = {}
-app.state.FUNCTION_CONTENTS = {}
+app.state.FUNCTION_CONTENT = {}
+app.state.FUNCTION_CONTENT_HASHES = FUNCTION_CONTENT_HASHES
 
 ########################################
 #

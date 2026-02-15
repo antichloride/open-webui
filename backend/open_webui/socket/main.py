@@ -137,6 +137,13 @@ if WEBSOCKET_MANAGER == "redis":
         redis_cluster=WEBSOCKET_REDIS_CLUSTER,
     )
 
+    FUNCTION_CONTENT_HASHES = RedisDict(
+        f"{REDIS_KEY_PREFIX}:function_content_hashes",
+        redis_url=WEBSOCKET_REDIS_URL,
+        redis_sentinels=redis_sentinels,
+        redis_cluster=WEBSOCKET_REDIS_CLUSTER,
+    )
+
     clean_up_lock = RedisLock(
         redis_url=WEBSOCKET_REDIS_URL,
         lock_name=f"{REDIS_KEY_PREFIX}:usage_cleanup_lock",
@@ -152,6 +159,7 @@ else:
 
     SESSION_POOL = {}
     USAGE_POOL = {}
+    FUNCTION_CONTENT_HASHES = {}
 
     aquire_func = release_func = renew_func = lambda: True
 
